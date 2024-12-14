@@ -5,3 +5,4 @@ plotly
 requests
 holidays
 datetime
+bs4
