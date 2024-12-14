@@ -13,7 +13,6 @@ import plotly.express as px
 from bs4 import BeautifulSoup
 import streamlit as st
 from datetime import datetime
-import holidays
 
 # Function to fetch and parse data from BLS
 @st.cache_data
@@ -60,26 +59,34 @@ def calculate_percentage_change(df, comparison_type):
         title = "Year Over Year % Change"
     return df, title
 
+# Function to check if today is the 15th day of the month
+def is_15th_of_month():
+    today = datetime.now().day
+    return today == 15
+
 # Streamlit app
 st.title("BLS Employment Data Dashboard")
 
-# Initialize session state for the dataframe
-if "df" not in st.session_state:
-    st.session_state.df = pd.DataFrame()
-
-# Button to fetch data
-if st.button("Fetch Data"):
-    with st.spinner("Fetching data..."):
-        df = fetch_bls_table_data()
-        if not df.empty:
-            st.session_state.df = df
-            st.success("Data fetched successfully!")
-        else:
-            st.error("Failed to fetch data. Ensure the URL or table structure is correct.")
+# Initialize session state and fetch data if it's the 15th day
+if "df" not in st.session_state or st.session_state.df.empty:
+    if is_15th_of_month():
+        with st.spinner("Fetching data..."):
+            df = fetch_bls_table_data()
+            if not df.empty:
+                st.session_state.df = df
+                st.success("Data fetched successfully!")
+            else:
+                st.error("Failed to fetch data. Ensure the URL or table structure is correct.")
+    else:
+        st.info("Data will be refreshed automatically on the 15th day of each month.")
 
 # Check if data exists in session state
 if not st.session_state.df.empty:
     df = st.session_state.df
+
+    # Display the dataframe
+    st.subheader("BLS Employment Data")
+    st.dataframe(df)
 
     # Select data type for visualization
     data_type = st.selectbox(
@@ -110,4 +117,4 @@ if not st.session_state.df.empty:
 
     st.plotly_chart(fig)
 else:
-    st.info("Click 'Fetch Data' to load BLS Employment Data.")
+    st.info("No data available to display.")
