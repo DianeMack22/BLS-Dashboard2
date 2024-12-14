@@ -14,6 +14,10 @@ from bs4 import BeautifulSoup
 import streamlit as st
 from datetime import datetime
 
+# Clear Streamlit's cache
+st.cache_data.clear()
+st.cache_resource.clear()
+
 # Function to calculate percentage changes
 def calculate_percentage_change(df, comparison_type):
     if comparison_type == "MoM":
@@ -59,14 +63,15 @@ def fetch_data():
         return pd.DataFrame()
 
 # Function to determine if today is the 15th day of the month
-def is_15th_of_month():
-    return datetime.now().day == 15
+def is_15th_or_first_run():
+    today = datetime.now().day
+    return today == 15 or "df" not in st.session_state
 
 # Streamlit app
 st.title("BLS Employment Data Dashboard")
 
-# Automatically fetch data on the 15th of each month
-if is_15th_of_month() or "df" not in st.session_state:
+# Automatically fetch data on the 15th or during the first app run
+if is_15th_or_first_run():
     with st.spinner("Fetching data..."):
         df = fetch_data()
         if not df.empty:
@@ -112,4 +117,4 @@ if "df" in st.session_state and not st.session_state.df.empty:
 
     st.plotly_chart(fig)
 else:
-    st.info("Data will be fetched and displayed automatically on the 15th of each month.")
+    st.info("Data will be fetched and displayed automatically.")
