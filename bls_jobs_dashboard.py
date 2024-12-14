@@ -24,59 +24,60 @@ def calculate_percentage_change(df, comparison_type):
         title = "Year Over Year % Change"
     return df, title
 
-# Function to check if today is the 15th day of the month
-def is_15th_of_month():
+# Function to fetch and parse data from BLS
+def fetch_data():
+    url = "https://data.bls.gov/dataViewer/view/timeseries/LNS11000000"
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, 'html.parser')
+    table = soup.find("table", {"id": "seriesDataTable1"})
+
+    if table:
+        rows = table.find_all("tr")
+        data = []
+
+        for row in rows:
+            cols = row.find_all("td")
+            if len(cols) > 0:
+                year = cols[0].text.strip()
+                period = cols[1].text.strip()
+                try:
+                    value = float(cols[3].text.strip().replace(",", "").split("\r")[0])
+                    month_code = period[1:]
+                    concatenated_date = f"{month_code}-{year}"
+                    data.append({
+                        "date": concatenated_date,
+                        "value": value
+                    })
+                except (ValueError, IndexError):
+                    continue
+
+        df = pd.DataFrame(data)
+        df["date"] = pd.to_datetime(df["date"], format="%m-%Y", errors="coerce")
+        df = df.dropna(subset=["date"])  # Drop rows where date parsing failed
+        return df
+    else:
+        return pd.DataFrame()
+
+# Function to determine if today is the 15th day of the month
+def is_15th_or_first_run():
     today = datetime.now().day
-    return today == 15
+    return today == 15 or "df" not in st.session_state
 
 # Streamlit app
 st.title("BLS Employment Data Dashboard")
 
-# Automatically fetch data on the 15th day of the month
-if "df" not in st.session_state or st.session_state.df.empty:
-    if is_15th_of_month():
-        with st.spinner("Fetching data..."):
-            url = "https://data.bls.gov/dataViewer/view/timeseries/LNS11000000"
-            response = requests.get(url)
-            soup = BeautifulSoup(response.content, 'html.parser')
-            table = soup.find("table", {"id": "seriesDataTable1"})
-
-            if table:
-                rows = table.find_all("tr")
-                data = []
-
-                for row in rows:
-                    cols = row.find_all("td")
-                    if len(cols) > 0:
-                        year = cols[0].text.strip()
-                        period = cols[1].text.strip()
-                        try:
-                            value = float(cols[3].text.strip().replace(",", "").split("\r")[0])
-                            month_code = period[1:]
-                            concatenated_date = f"{month_code}-{year}"
-                            data.append({
-                                "date": concatenated_date,
-                                "value": value
-                            })
-                        except (ValueError, IndexError):
-                            continue
-
-                df = pd.DataFrame(data)
-                df["date"] = pd.to_datetime(df["date"], format="%m-%Y", errors="coerce")
-                df = df.dropna(subset=["date"])  # Drop rows where date parsing failed
-
-                if not df.empty:
-                    st.session_state.df = df
-                    st.success("Data fetched successfully!")
-                else:
-                    st.error("Failed to fetch data. Ensure the URL or table structure is correct.")
-            else:
-                st.error("Failed to fetch data. Table not found.")
-    else:
-        st.info("Data will be refreshed automatically on the 15th day of each month.")
+# Automatically fetch data on the 15th or during the first app run
+if is_15th_or_first_run():
+    with st.spinner("Fetching data..."):
+        df = fetch_data()
+        if not df.empty:
+            st.session_state.df = df
+            st.success("Data fetched successfully!")
+        else:
+            st.error("Failed to fetch data. Ensure the URL or table structure is correct.")
 
 # Check if data exists in session state
-if not st.session_state.get("df", pd.DataFrame()).empty:
+if "df" in st.session_state and not st.session_state.df.empty:
     df = st.session_state.df
 
     # Display the dataframe
@@ -112,4 +113,4 @@ if not st.session_state.get("df", pd.DataFrame()).empty:
 
     st.plotly_chart(fig)
 else:
-    st.info("No data available to display.")
+    st.info("Data will be fetched and displayed automatically.")
