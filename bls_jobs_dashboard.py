@@ -29,8 +29,7 @@ def calculate_percentage_change(df, comparison_type):
     return df, title
 
 # Function to fetch and parse data from BLS
-def fetch_data():
-    url = "https://data.bls.gov/dataViewer/view/timeseries/CES0000000001"
+def fetch_data(url):
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
     table = soup.find("table", {"id": "seriesDataTable1"})
