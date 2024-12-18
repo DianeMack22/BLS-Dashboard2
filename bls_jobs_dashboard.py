@@ -84,17 +84,17 @@ with st.spinner("Fetching unemployment data..."):
 # Check if data exists
 if not employment_df.empty and not unemployment_df.empty:
     unemployment_df["type"] = "Unemployment Rate"
-    employment_df["type"] = "Employment Level"
+    employment_df["type"] = "All Non-Farm Employees"
     combined_df = pd.concat([employment_df, unemployment_df])
 
     # Display the combined dataframe
-    st.subheader("BLS Employment and Unemployment Data")
+    st.subheader("BLS Non-Farm Employment and Unemployment Data")
     st.dataframe(combined_df)
 
     # Create slicer for visualization
     data_type = st.selectbox(
         "Select Data Type:",
-        ["Employment Level", "Unemployment Rate", "Employment Percentage Change by Month", "Employment Percentage Change by Year"]
+        ["Non-Farm Employment Level", "Unemployment Rate", "Employment Percentage Change by Month", "Employment Percentage Change by Year"]
     )
 
     if data_type == "Employment Level" or data_type == "Unemployment Rate":
