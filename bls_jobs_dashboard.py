@@ -84,7 +84,7 @@ with st.spinner("Fetching unemployment data..."):
 # Check if data exists
 if not employment_df.empty and not unemployment_df.empty:
     unemployment_df["type"] = "Unemployment Rate"
-    employment_df["type"] = "All Non-Farm Employees"
+    employment_df["type"] = "Employment Level"
     combined_df = pd.concat([employment_df, unemployment_df])
 
     # Display the combined dataframe
