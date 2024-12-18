@@ -22,15 +22,15 @@ st.cache_resource.clear()
 def calculate_percentage_change(df, comparison_type):
     if comparison_type == "MoM":
         df["change"] = df["value"].pct_change() * 100
-        title = "Month Over Month % Change"
+        title = "Percentage Change in Employment by Month"
     elif comparison_type == "YoY":
-        df["change"] = df["value"].pct_change(periods=12) * 100
-        title = "Year Over Year % Change"
+        df["change"] = df["value"].pct_change(periods=24) * 100
+        title = "Percentage Change in Employment by Year"
     return df, title
 
 # Function to fetch and parse data from BLS
 def fetch_data():
-    url = "https://data.bls.gov/dataViewer/view/timeseries/LNS11000000"
+    url = "https://data.bls.gov/dataViewer/view/timeseries/CES0000000001"
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
     table = soup.find("table", {"id": "seriesDataTable1"})
@@ -55,64 +55,90 @@ def fetch_data():
                 except (ValueError, IndexError):
                     continue
 
+        # Clean data; convert the date string to a datetime object
         df = pd.DataFrame(data)
         df["date"] = pd.to_datetime(df["date"], format="%m-%Y", errors="coerce")
-        df = df.dropna(subset=["date"])  # Drop rows where date parsing failed
+        # Drop rows where date parsing failed
+        df = df.dropna(subset=["date"])
         return df
     else:
-        return pd.DataFrame()
+        return pd.DataFrame()  # Returns clean dataframe
 
 # Function to determine if today is the 15th day of the month
 def is_15th_or_first_run():
     today = datetime.now().day
-    return today == 15 or "df" not in st.session_state
+    return today == 15 or "employment_df" not in st.session_state or "unemployment_df" not in st.session_state
 
 # Streamlit app
-st.title("BLS Employment Data Dashboard")
+st.title("BLS Employment and Unemployment Data Dashboard")
 
 # Automatically fetch data on the 15th or during the first app run
 if is_15th_or_first_run():
-    with st.spinner("Fetching data..."):
-        df = fetch_data()
-        if not df.empty:
-            st.session_state.df = df
-            st.success("Data fetched successfully!")
+    with st.spinner("Fetching employment data..."):
+        employment_url = "https://data.bls.gov/dataViewer/view/timeseries/CES0000000001"
+        employment_df = fetch_data(employment_url)
+        if not employment_df.empty:
+            st.session_state.employment_df = employment_df
+            st.success("Employment data fetched successfully!")
         else:
-            st.error("Failed to fetch data. Ensure the URL or table structure is correct.")
+            st.error("Failed to fetch employment data.")
+
+
+    with st.spinner("Fetching unemployment data..."):
+        unemployment_url = "https://data.bls.gov/dataViewer/view/timeseries/LNS14000000"
+        unemployment_df = fetch_data(unemployment_url)
+        if not unemployment_df.empty:
+            st.session_state.unemployment_df = unemployment_df
+            st.success("Unemployment data fetched successfully!")
+        else:
+            st.error("Failed to fetch unemployment data.")
 
 # Check if data exists in session state
-if "df" in st.session_state and not st.session_state.df.empty:
-    df = st.session_state.df
+if "employment_df" in st.session_state and not st.session_state.employment_df.empty:
+    employment_df = st.session_state.employment_df
+
+if "unemployment_df" in st.session_state and not st.session_state.unemployment_df.empty:
+    unemployment_df = st.session_state.unemployment_df
+
+    # Combine the datasets
+    unemployment_df["type"] = "Unemployment Rate"
+    employment_df["type"] = "Employment Level"
+    combined_df = pd.concat([employment_df, unemployment_df])
 
     # Display the dataframe
-    st.subheader("BLS Employment Data")
-    st.dataframe(df)
+    st.subheader("BLS Employment and Unemployment Data")
+    st.dataframe(combined_df)
 
-    # Select data type for visualization
+    # Create slicer for visualization
     data_type = st.selectbox(
         "Select Data Type:",
-        ["Actual Employment", "Percentage Change (Month over Month)", "Percentage Change (Year over Year)"]
+        ["Employment Level", "Unemployment Rate", "Employment Percentage Change by Month", "Employment Percentage Change by Year"]
     )
 
-    if data_type == "Actual Employment":
-        fig = px.line(
-            df,
+    # Create line charts of employment levels
+    if data_type == "Employment Level" or date_type == "Unemployment Rate":
+      # Filter data based on the selection
+      filtered_df = combined_df[combined_df["type"] == data_type]
+
+      fig = px.line(
+            filtered_df,
             x="date",
             y="value",
-            title="Civilian Labor Force",
-            labels={"date": "Date", "value": "Employment Level"},
-            template="plotly_dark"
+            title=data_type,
+            labels={"date": "Date", "value": data_type},
+            template="simple_white"
         )
     else:
+        # Apply percentage change to employment data only
         comparison_type = "MoM" if "Month" in data_type else "YoY"
-        df, title = calculate_percentage_change(df, comparison_type)
+        employment_df, title = calculate_percentage_change(df, comparison_type)
         fig = px.line(
-            df,
+            employment_df,
             x="date",
             y="change",
             title=title,
             labels={"date": "Date", "change": "% Change"},
-            template="plotly_dark"
+            template="simple_white"
         )
 
     st.plotly_chart(fig)
