@@ -115,7 +115,7 @@ if "unemployment_df" in st.session_state and not st.session_state.unemployment_d
     )
 
     # Create line charts of employment levels
-    if data_type == "Employment Level" or date_type == "Unemployment Rate":
+    if data_type == "Employment Level" or data_type == "Unemployment Rate":
       # Filter data based on the selection
       filtered_df = combined_df[combined_df["type"] == data_type]
 
