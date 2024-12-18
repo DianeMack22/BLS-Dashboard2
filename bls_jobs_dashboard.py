@@ -130,7 +130,7 @@ if "unemployment_df" in st.session_state and not st.session_state.unemployment_d
     else:
         # Apply percentage change to employment data only
         comparison_type = "MoM" if "Month" in data_type else "YoY"
-        employment_df, title = calculate_percentage_change(df, comparison_type)
+        employment_df, title = calculate_percentage_change(employment_df, comparison_type)
         fig = px.line(
             employment_df,
             x="date",
