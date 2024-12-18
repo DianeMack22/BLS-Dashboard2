@@ -22,7 +22,7 @@ st.cache_resource.clear()
 
 # Function to calculate percentage changes
 def calculate_percentage_change(df, comparison_type):
-    df = df.copy() # Avoid modifying the original dataframe
+    df = df.copy()  # Avoid modifying the original dataframe
     if comparison_type == "MoM":
         df["change"] = df["value"].pct_change() * 100
         title = "Employment Percent Change by Month"
@@ -84,7 +84,7 @@ with st.spinner("Fetching unemployment data..."):
 # Check if data exists
 if not employment_df.empty and not unemployment_df.empty:
     unemployment_df["type"] = "Unemployment Rate"
-    employment_df["type"] = "Employment Level"
+    employment_df["type"] = "Non-Farm Employment Level"
     combined_df = pd.concat([employment_df, unemployment_df])
 
     # Display the combined dataframe
@@ -97,7 +97,7 @@ if not employment_df.empty and not unemployment_df.empty:
         ["Non-Farm Employment Level", "Unemployment Rate", "Employment Percentage Change by Month", "Employment Percentage Change by Year"]
     )
 
-    if data_type == "Employment Level" or data_type == "Unemployment Rate":
+    if data_type == "Non-Farm Employment Level" or data_type == "Unemployment Rate":
         # Filter data based on the selection
         filtered_df = combined_df[combined_df["type"] == data_type]
 
@@ -106,16 +106,16 @@ if not employment_df.empty and not unemployment_df.empty:
             x="date",
             y="value",
             title=data_type,
-            labels={"date": "Date", "value": data_type},
+            labels={"date": "Date", "value": "Level"},
             template="simple_white"
         )
     else:
         # Apply percentage change to employment data only
         comparison_type = "MoM" if "Month" in data_type else "YoY"
-        employment_df, title = calculate_percentage_change(employment_df, comparison_type)
+        change_df, title = calculate_percentage_change(employment_df, comparison_type)
 
         fig = px.line(
-            employment_df,
+            change_df,
             x="date",
             y="change",
             title=title,
