@@ -112,10 +112,10 @@ if not employment_df.empty and not unemployment_df.empty:
     else:
         # Apply percentage change to employment data only
         comparison_type = "MoM" if "Month" in data_type else "YoY"
-        change_df, title = calculate_percentage_change(employment_df, comparison_type)
+        employment_df, title = calculate_percentage_change(employment_df, comparison_type)
 
         fig = px.line(
-            change_df,
+            employment_df,
             x="date",
             y="change",
             title=title,
