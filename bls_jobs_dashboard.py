@@ -27,7 +27,7 @@ def calculate_percentage_change(df, comparison_type):
         df["change"] = df["value"].pct_change() * 100
         title = "Employment Percent Change by Month"
     elif comparison_type == "YoY":
-        df["change"] = df["value"].pct_change() * 100
+        df["change"] = df["value"].pct_change(12) * 100
         title = "Employment Percent Change by Year"
     return df, title
 
